@@ -1,5 +1,5 @@
 require('dotenv').config()
-
+//hi zouzou
 const express = require('express')
 const mongoose = require('mongoose')
 const notesRoutes = require('./routes/notes')
