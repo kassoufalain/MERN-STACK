@@ -15,9 +15,7 @@ module.exports = router;
 // auth.js
 /*   */
 const express = require('express');
-const { loginUser, signupUser 
-    
-} = require('../controllers/authController');
+const { loginUser, signupUser } = require('../controllers/authController');
 
 console.log('loginUser:', loginUser); // Should print the function definition
 console.log('signupUser:', signupUser); // Should print the function definition

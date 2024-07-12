@@ -1,27 +1,17 @@
 const express = require('express');
-const {
-    getNotes,
-    getNote,
-    createNote,
-    deleteNote,
-    updateNote
-} = require('../controllers/noteController');
-
 const router = express.Router();
+const requireAuth = require('../middleware/requireAuth'); // Ensure the path to requireAuth is correct
 
-// Get all notes
-router.get('/', getNotes);
+const {
+  getNotes,
+  addNote,
+  deleteNote,
+  updateNote,
+} = require('../controllers/noteController'); // Ensure the path to noteController is correct
 
-// Get note by id
-router.get('/:id', getNote);
-
-// Post a new note (auto id given)
-router.post('/', createNote);
-
-// Delete note by id 
-router.delete('/:id', deleteNote);
-
-// Update a note
-router.patch('/:id', updateNote);
+router.get('/', requireAuth, getNotes); // GET all notes
+router.post('/', requireAuth, addNote); // Add a new note
+router.delete('/:id', requireAuth, deleteNote); // Delete a note
+router.put('/:id', requireAuth, updateNote); // Update a note
 
 module.exports = router;

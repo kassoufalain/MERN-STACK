@@ -1,75 +1,69 @@
-const Note = require('../models/noteModel');
-const mongoose = require('mongoose');
+const Note = require('../models/noteModel'); // Assuming Note model is correctly imported
 
-// Get all notes
+// Get all notes associated with a userId
 const getNotes = async (req, res) => {
-    const notes = await Note.find({}).sort({ createdAt: -1 });
-    res.status(200).json(notes);
+  try {
+    const userId = req.user.id; // Retrieve userId from authenticated user
+    const notes = await Note.find({ userId }); // Query notes associated with userId
+    res.json(notes);
+  } catch (error) {
+    console.error('Error fetching notes:', error);
+    res.status(500).json({ error: 'Error fetching notes' });
+  }
 };
 
-// Get a single note
-const getNote = async (req, res) => {
-    const { id } = req.params
+// Add a new note associated with a userId
+const addNote = async (req, res) => {
+  try {
+    const { description } = req.body;
+    const userId = req.user.id; // Retrieve userId from authenticated user
 
-    if (!mongoose.Types.ObjectId.isValid(id))  {
-        return res.status(404).json({error: 'Note not found !'});
-    }
+    const newNote = new Note({
+      description,
+      userId, // Associate the note with userId
+      completed: false, // Assuming default value for completed
+    });
 
-    const note = await Note.findById(id);
-    if (!note) {
-        return res.status(404).json({ error: 'Note not found!' });
-    }
-    res.status(200).json(note);
+    const savedNote = await newNote.save();
+    res.status(201).json(savedNote);
+  } catch (error) {
+    console.error('Error adding note:', error);
+    res.status(500).json({ error: 'Error adding note' });
+  }
 };
 
-// Create a new note
-const createNote = async (req, res) => {
-    const { title, description } = req.body;
-    try {
-        const note = await Note.create({ title, description });
-        res.status(201).json(note);
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-};
-
-// Delete a note
+// Delete a note by note id and userId
 const deleteNote = async (req, res) => {
-    const { id } = req.params
-    if (!mongoose.Types.ObjectId.isValid(id))  {
-        return res.status(404).json({error: 'Note not found !'});
-    }
+  try {
+    const { id, userId } = req.params;
+    await Note.findOneAndDelete({ _id: id, userId });
+    res.status(204).end();
+  } catch (error) {
+    console.error('Error deleting note:', error);
+    res.status(500).json({ error: 'Error deleting note' });
+  }
+};
 
-    const note = await Note.findOneAndDelete({_id: id})
-    if (!note) {
-        return res.status(400).json({ error: 'Note not found!' });
-    }
-    res.status(200).json(note);
-}
-
-// update a note
-
+// Update a note by id
 const updateNote = async (req, res) => {
-    const { id } = req.params
-    if (!mongoose.Types.ObjectId.isValid(id))  {
-        return res.status(404).json({error: 'Note not found !'});
-    }
-
-    const note = await Note.findOneAndUpdate({_id: id}, {
-        ...req.body
-    })
-    if (!note) {
-        return res.status(400).json({ error: 'Note not found!' });
-    }
-
-    res.status(200).json(note)
-}
-
+  try {
+    const { id } = req.params;
+    const { description, completed } = req.body;
+    const updatedNote = await Note.findByIdAndUpdate(
+      id,
+      { description, completed },
+      { new: true }
+    );
+    res.json(updatedNote);
+  } catch (error) {
+    console.error('Error updating note:', error);
+    res.status(500).json({ error: 'Error updating note' });
+  }
+};
 
 module.exports = {
-    getNotes,
-    getNote,
-    createNote,
-    deleteNote,
-    updateNote
+  getNotes,
+  addNote,
+  deleteNote,
+  updateNote,
 };
