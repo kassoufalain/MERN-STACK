@@ -1,5 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+// pages/notes.tsx
+
+import React, { useState } from 'react';
+import Link from 'next/link';
 
 interface Note {
   _id: string;
@@ -7,144 +9,56 @@ interface Note {
   completed: boolean;
 }
 
-const Notes: React.FC = () => {
-  const [notes, setNotes] = useState<Note[]>([]);
-  const [newNoteTitle, setNewNoteTitle] = useState<string>('');
-  const [error, setError] = useState<string>('');
+interface NotesProps {
+  theme: 'light' | 'dark';
+  notes: Note[];
+  error: string | null;
+  handleAddNote: () => void;
+  newNoteTitle: string;
+  setNewNoteTitle: (title: string) => void;
+}
 
-  useEffect(() => {
-    const fetchNotes = async () => {
-      try {
-        const userId = localStorage.getItem('userId'); // Get userId from localStorage
-
-        if (!userId) {
-          throw new Error('No userId found');
-        }
-
-        const response = await axios.get<Note[]>(`http://localhost:5000/api/notes/${userId}`);
-        setNotes(response.data);
-      } catch (error: any) {
-        console.error('Error fetching notes:', error);
-        setError(error.message || 'Error fetching notes');
-      }
-    };
-
-    fetchNotes();
-  }, []); // Empty dependencies array to run only once
-
-  const handleAddNote = async () => {
-    try {
-      const userId = localStorage.getItem('userId'); // Get userId from localStorage
-
-      if (!userId) {
-        throw new Error('No userId found');
-      }
-
-      const response = await axios.post<Note>(
-        'http://localhost:5000/api/notes',
-        { description: newNoteTitle, user: userId }, // Include userId in the request body
-      );
-
-      setNotes([...notes, response.data]);
-      setNewNoteTitle('');
-    } catch (error: any) {
-      console.error('Error adding note:', error);
-      setError(error.message || 'Error adding note');
-    }
-  };
-
-  const handleDeleteNote = async (id: string) => {
-    try {
-      const userId = localStorage.getItem('userId'); // Get userId from localStorage
-
-      if (!userId) {
-        throw new Error('No userId found');
-      }
-
-      await axios.delete(`http://localhost:5000/api/notes/${id}/${userId}`);
-      setNotes(notes.filter((note) => note._id !== id));
-    } catch (error: any) {
-      console.error('Error deleting note:', error);
-      setError(error.message || 'Error deleting note');
-    }
-  };
-
-  const handleToggleComplete = async (id: string) => {
-    try {
-      const userId = localStorage.getItem('userId'); // Get userId from localStorage
-
-      if (!userId) {
-        throw new Error('No userId found');
-      }
-
-      const noteToUpdate = notes.find((note) => note._id === id);
-      if (!noteToUpdate) {
-        throw new Error('Note not found');
-      }
-
-      const updatedNote = { ...noteToUpdate, completed: !noteToUpdate.completed };
-      const response = await axios.put<Note>(
-        `http://localhost:5000/api/notes/${id}`,
-        updatedNote,
-        {
-          headers: {
-            Authorization: `Bearer ${userId}`,
-          },
-        }
-      );
-
-      setNotes(notes.map((note) => (note._id === id ? response.data : note)));
-    } catch (error: any) {
-      console.error('Error updating note:', error);
-      setError(error.message || 'Error updating note');
-    }
+const NotesPage: React.FC<NotesProps> = ({
+  theme,
+  notes,
+  error,
+  handleAddNote,
+  newNoteTitle,
+  setNewNoteTitle,
+}) => {
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold mb-6">Your Notes</h1>
-      {error && <p className="text-red-500">{error}</p>}
-      <ul className="w-full max-w-md">
-        {notes.map((note) => (
-          <li
-            key={note._id}
-            className="bg-white p-4 mb-4 shadow-md rounded-md flex justify-between items-center"
-          >
-            <div>
-              <h2 className={`text-xl font-semibold ${note.completed ? 'line-through' : ''}`}>
-                {note.description}
-              </h2>
-              {/* Additional content */}
-              <p>Completed: {note.completed ? 'Yes' : 'No'}</p>
+    <div className={theme === 'light' ? 'light-mode' : 'dark-mode'}>
+      <div className="header">
+        <div className="logo">
+          <h1>TO DO APP</h1>
+          <p>Stop Procrastinating, Start Organizing</p>
+        </div>
+        <div className="icons">
+          <button id="theme-toggle" className="theme-toggle" onClick={toggleTheme}>
+            <img src="/path/to/your/theme-icon.png" alt="theme selector" />
+          </button>
+          <img className="icon user-profile" src="/path/to/your/profile-photo.png" alt="profile photo" />
+        </div>
+      </div>
+      <div className="container">
+        <h2>Notes</h2>
+        <div className="notes-list">
+          {/* Replace with your actual notes data rendering logic */}
+          {notes.map((note) => (
+            <div className="note-item" key={note._id}>
+              <h3>{note.description}</h3>
+              <p>{note.completed ? 'Completed' : 'Not Completed'}</p>
             </div>
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                checked={note.completed}
-                onChange={() => handleToggleComplete(note._id)}
-                className="mr-2"
-              />
-              <button onClick={() => handleDeleteNote(note._id)} className="text-red-500">
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-      <div className="w-full max-w-md mt-4 flex">
-        <input
-          type="text"
-          value={newNoteTitle}
-          onChange={(e) => setNewNoteTitle(e.target.value)}
-          placeholder="New Note"
-          className="flex-1 p-2 border border-gray-300 rounded-md"
-        />
-        <button onClick={handleAddNote} className="ml-2 px-4 py-2 bg-indigo-600 text-white rounded-md">
-          Add New Note
-        </button>
+          ))}
+        </div>
+        <p><Link href="/add-note">Add Note</Link></p>
       </div>
     </div>
   );
 };
 
-export default Notes;
+export default NotesPage;

@@ -1,45 +1,38 @@
-// Example authController.js
-const User = require('../models/userModel'); // Adjust the import as per your file structure
-const bcrypt = require('bcryptjs');
+// authController.js
+const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
-
-async function signupUser(req, res) {
+const bcrypt = require('bcryptjs');
+// Controller function to handle user signup
+const signupUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    // Check if email already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ error: 'Email already exists' });
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Create new user
-    user = new User({
-      email,
-      password // Remember to hash the password before saving to DB
-    });
+    // Create a new user
+    const newUser = new User({ email, password });
+    await newUser.save();
 
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
-    // Save user to DB
-    await user.save();
-
-    // Respond with success
-    res.json({ message: 'Signup successful' });
+    // Generate JWT token
+    const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(201).json({ token });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Server Error');
+    console.error('Error during signup:', error);
+    res.status(500).json({ error: 'Server error' });
   }
-}
+};
 
-async function loginUser(req, res) {
+// Controller function to handle user login
+const loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     // Check if user exists
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
@@ -50,21 +43,16 @@ async function loginUser(req, res) {
       return res.status(400).json({ error: 'Invalid credentials' });
     }
 
-    // Return JWT token (example)
-    const payload = {
-      user: {
-        id: user.id
-      }
-    };
-
-    jwt.sign(payload, 'jwtSecret', { expiresIn: '1h' }, (err, token) => {
-      if (err) throw err;
-      res.json({ token });
-    });
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.status(200).json({ token });
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Server Error');
+    console.error('Error during login:', error);
+    res.status(500).json({ error: 'Server error' });
   }
-}
+};
 
-module.exports = { signupUser, loginUser };
+module.exports = {
+  signupUser,
+  loginUser,
+};

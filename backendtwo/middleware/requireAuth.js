@@ -1,70 +1,23 @@
-// Example authController.js
-const User = require('../models/userModel'); // Adjust the import as per your file structure
-const bcrypt = require('bcryptjs');
+// requireAuth.js
 const jwt = require('jsonwebtoken');
+const User = require('../models/userModel');
 
-async function signupUser(req, res) {
-  const { email, password } = req.body;
+const requireAuth = async (req, res, next) => {
+  const { authorization } = req.headers;
+
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const token = authorization.split(' ')[1];
 
   try {
-    // Check if email already exists
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ error: 'Email already exists' });
-    }
-
-    // Create new user
-    user = new User({
-      email,
-      password // Remember to hash the password before saving to DB
-    });
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
-
-    // Save user to DB
-    await user.save();
-
-    // Respond with success
-    res.json({ message: 'Signup successful' });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.id);
+    next();
   } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Server Error');
+    return res.status(401).json({ error: 'Unauthorized' });
   }
-}
+};
 
-async function loginUser(req, res) {
-  const { email, password } = req.body;
-
-  try {
-    // Check if user exists
-    let user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Validate password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Return JWT token (example)
-    const payload = {
-      user: {
-        id: user.id
-      }
-    };
-
-    jwt.sign(payload, 'jwtSecret', { expiresIn: '1h' }, (err, token) => {
-      if (err) throw err;
-      res.json({ token });
-    });
-  } catch (error) {
-    console.error(error.message);
-    res.status(500).send('Server Error');
-  }
-}
-
-module.exports = { signupUser, loginUser };
+module.exports = requireAuth;
